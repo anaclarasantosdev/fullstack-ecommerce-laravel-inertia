@@ -10,7 +10,7 @@ Este é um projeto de e-commerce completo desenvolvido para aplicar conceitos av
 - **Banco de dados:** MySql
 
 
-##Como rodar o projeto:
+## Como rodar o projeto:
 1. Clone o reposiório
 2. Execute `composer install` e `npm install`.
 3. Configure seu arquivo .env com as credenciais do banco.
