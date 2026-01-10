@@ -1,0 +1,2 @@
+//para criar um model já com controller e migration
+php artisan make:model Categoria -mc
