@@ -13,8 +13,13 @@ return new class extends Migration
     {
         Schema::create('atributos', function (Blueprint $table) {
             $table->id();
+            $table->string('nome_atributo', 100)->unique();
+            $table->enum('tipo', ['TEXTO', 'NUMERO', 'DECIMAL', 'COR', 'TAMANHO', 'BOOLEANO'])->default('TEXTO');       
+            $table->boolean('visivel_variacao')->default(false);
+            $table->integer('ordem')->default(0);
             $table->timestamps();
         });
+
     }
 
     /**

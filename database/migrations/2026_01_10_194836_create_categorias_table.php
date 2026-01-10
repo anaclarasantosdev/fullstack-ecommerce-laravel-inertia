@@ -13,7 +13,17 @@ return new class extends Migration
     {
         Schema::create('categorias', function (Blueprint $table) {
             $table->id();
+            $table->string('nome')->unique();
+            $table->string('slug')->unique();
+            $table->text('descricao')->nullable();
+            $table->string('imagem_url', 500)->nullable();
+            $table->foreignId('categoria_pai_id')->nullable()->constrained('categorias');
+            $table->integer('ordem')->default(0);
+            $table->boolean('ativa')->default(true);    
             $table->timestamps();
+            $table->index('categoria_pai_id');
+            $table->index('slug');
+            $table->index('ordem');
         });
     }
 

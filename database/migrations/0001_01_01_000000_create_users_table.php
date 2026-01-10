@@ -13,13 +13,25 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->string('tipo')->enum('cliente', 'administrador', 'vendedor')->default('cliente');
+            $table->varchar('cpf_cnpj', 20)->unique();
+            $table->date('data_nascimento')->nullable();
+            $table->string('telefone', 20)->nullable();
+            $table->string('avatar_url', 500)->nullable();
+            $table->string('google_id', 100)->unique()->nullable();
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
+            $table->boolean('ativo')->default(true);
+            $table->boolean('receber_newsletter')->default(true);
+            $table->date('ultimo_login')->nullable();
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
-        });
+
+            $table->index('email', 'idx_usuario_email');
+            $table->index('tipo', 'idx_usuario_tipo');
+    });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();

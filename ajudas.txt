@@ -1,2 +1,1207 @@
 //para criar um model já com controller e migration
 php artisan make:model Categoria -mc
+
+# Banco de Dados em Mysql 
+
+-- Criação do banco de dados
+CREATE DATABASE IF NOT EXISTS ecommerce_db;
+USE ecommerce_db;
+
+-- ==============================================
+-- TABELAS PRINCIPAIS
+-- ==============================================
+
+-- TABELA USUÁRIOS/CLIENTES
+CREATE TABLE Usuario (
+    id_usuario INT PRIMARY KEY AUTO_INCREMENT,
+    tipo ENUM('CLIENTE', 'ADMIN', 'VENDEDOR') DEFAULT 'CLIENTE',
+    nome_completo VARCHAR(200) NOT NULL,
+    email VARCHAR(150) UNIQUE NOT NULL,
+    senha_hash VARCHAR(255),
+    cpf VARCHAR(14) UNIQUE,
+    data_nascimento DATE,
+    telefone VARCHAR(20),
+    avatar_url VARCHAR(500),
+    
+    -- Login social
+    google_id VARCHAR(100) UNIQUE,
+    facebook_id VARCHAR(100) UNIQUE,
+    
+    -- Endereço principal
+    cep VARCHAR(10),
+    endereco VARCHAR(200),
+    numero VARCHAR(10),
+    complemento VARCHAR(100),
+    bairro VARCHAR(100),
+    cidade VARCHAR(100),
+    estado CHAR(2),
+    
+    -- Status
+    email_verificado BOOLEAN DEFAULT FALSE,
+    ativo BOOLEAN DEFAULT TRUE,
+    receber_newsletter BOOLEAN DEFAULT TRUE,
+    
+    -- Datas
+    data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_ultimo_login DATETIME,
+    data_atualizacao DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Índices
+    INDEX idx_usuario_email (email),
+    INDEX idx_usuario_tipo (tipo),
+    INDEX idx_usuario_cidade_estado (cidade, estado),
+    INDEX idx_usuario_data_cadastro (data_cadastro)
+);
+
+-- TABELA DE ENDEREÇOS ADICIONAIS
+CREATE TABLE Endereco (
+    id_endereco INT PRIMARY KEY AUTO_INCREMENT,
+    id_usuario INT NOT NULL,
+    tipo ENUM('RESIDENCIAL', 'COMERCIAL', 'ENTREGA', 'COBRANCA') DEFAULT 'ENTREGA',
+    apelido VARCHAR(50) NOT NULL, -- "Casa", "Trabalho", "Sítio"
+    destinatario VARCHAR(200),
+    cep VARCHAR(10) NOT NULL,
+    logradouro VARCHAR(200) NOT NULL,
+    numero VARCHAR(10) NOT NULL,
+    complemento VARCHAR(100),
+    bairro VARCHAR(100) NOT NULL,
+    cidade VARCHAR(100) NOT NULL,
+    estado CHAR(2) NOT NULL,
+    telefone_contato VARCHAR(20),
+    principal BOOLEAN DEFAULT FALSE,
+    
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario) ON DELETE CASCADE,
+    UNIQUE KEY uk_endereco_principal (id_usuario, tipo, principal),
+    
+    -- Índices
+    INDEX idx_endereco_usuario (id_usuario),
+    INDEX idx_endereco_principal (principal)
+);
+
+-- TABELA CATEGORIAS
+CREATE TABLE Categoria (
+    id_categoria INT PRIMARY KEY AUTO_INCREMENT,
+    nome_categoria VARCHAR(100) UNIQUE NOT NULL,
+    slug VARCHAR(100) UNIQUE NOT NULL,
+    descricao TEXT,
+    imagem_url VARCHAR(500),
+    id_categoria_pai INT NULL, -- Para subcategorias
+    ordem INT DEFAULT 0,
+    ativa BOOLEAN DEFAULT TRUE,
+    data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (id_categoria_pai) REFERENCES Categoria(id_categoria),
+    
+    -- Índices
+    INDEX idx_categoria_pai (id_categoria_pai),
+    INDEX idx_categoria_slug (slug),
+    INDEX idx_categoria_ordem (ordem)
+);
+
+-- TABELA PRODUTOS
+CREATE TABLE Produto (
+    id_produto INT PRIMARY KEY AUTO_INCREMENT,
+    sku VARCHAR(50) UNIQUE NOT NULL,
+    nome_produto VARCHAR(200) NOT NULL,
+    slug VARCHAR(200) UNIQUE NOT NULL,
+    descricao LONGTEXT,
+    descricao_curta VARCHAR(500),
+    
+    -- Categoria principal
+    id_categoria INT NOT NULL,
+    
+    -- Preços
+    preco_base DECIMAL(10,2) NOT NULL,
+    preco_promocional DECIMAL(10,2),
+    custo_medio DECIMAL(10,2),
+    
+    -- Estoque
+    gerenciar_estoque BOOLEAN DEFAULT TRUE,
+    estoque INT DEFAULT 0,
+    estoque_minimo INT DEFAULT 5,
+    baixa_estoque BOOLEAN DEFAULT TRUE, -- Diminuir estoque na venda
+    
+    -- Dimensões e peso (para frete)
+    peso_kg DECIMAL(6,3),
+    comprimento_cm DECIMAL(6,2),
+    largura_cm DECIMAL(6,2),
+    altura_cm DECIMAL(6,2),
+    
+    -- Status
+    disponivel BOOLEAN DEFAULT TRUE,
+    destaque BOOLEAN DEFAULT FALSE,
+    novidade BOOLEAN DEFAULT FALSE,
+    mais_vendido BOOLEAN DEFAULT FALSE,
+    
+    -- Visibilidade
+    visibilidade ENUM('PUBLICO', 'PRIVADO', 'OCULTO') DEFAULT 'PUBLICO',
+    
+    -- Datas
+    data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_atualizacao DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    data_publicacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (id_categoria) REFERENCES Categoria(id_categoria),
+    
+    -- Índices
+    INDEX idx_produto_categoria (id_categoria),
+    INDEX idx_produto_slug (slug),
+    INDEX idx_produto_sku (sku),
+    INDEX idx_produto_destaque (destaque),
+    INDEX idx_produto_preco (preco_base),
+    INDEX idx_produto_disponivel (disponivel),
+    INDEX idx_produto_data_publicacao (data_publicacao)
+);
+
+-- TABELA DE ATRIBUTOS DO PRODUTO
+CREATE TABLE Atributo (
+    id_atributo INT PRIMARY KEY AUTO_INCREMENT,
+    nome_atributo VARCHAR(100) UNIQUE NOT NULL,
+    tipo ENUM('TEXTO', 'NUMERO', 'DECIMAL', 'COR', 'TAMANHO', 'BOOLEANO') DEFAULT 'TEXTO',
+    visivel_variacao BOOLEAN DEFAULT FALSE, -- Se aparece como variação
+    ordem INT DEFAULT 0
+);
+
+-- VALORES DOS ATRIBUTOS PARA CADA PRODUTO
+CREATE TABLE Produto_Atributo (
+    id_produto INT NOT NULL,
+    id_atributo INT NOT NULL,
+    valor VARCHAR(255) NOT NULL,
+    PRIMARY KEY (id_produto, id_atributo),
+    FOREIGN KEY (id_produto) REFERENCES Produto(id_produto) ON DELETE CASCADE,
+    FOREIGN KEY (id_atributo) REFERENCES Atributo(id_atributo),
+    
+    INDEX idx_produto_atributo (id_produto, id_atributo)
+);
+
+-- TABELA VARIAÇÕES DO PRODUTO (ex: Camiseta P, M, G)
+CREATE TABLE Variacao (
+    id_variacao INT PRIMARY KEY AUTO_INCREMENT,
+    id_produto INT NOT NULL,
+    sku_variacao VARCHAR(50),
+    descricao_variacao VARCHAR(200),
+    preco_adicional DECIMAL(10,2) DEFAULT 0,
+    estoque INT DEFAULT 0,
+    imagem_url VARCHAR(500),
+    ativa BOOLEAN DEFAULT TRUE,
+    
+    FOREIGN KEY (id_produto) REFERENCES Produto(id_produto) ON DELETE CASCADE,
+    UNIQUE KEY uk_variacao_sku (sku_variacao),
+    
+    INDEX idx_variacao_produto (id_produto)
+);
+
+-- ATRIBUTOS DA VARIAÇÃO (ex: Cor: Azul, Tamanho: P)
+CREATE TABLE Variacao_Atributo (
+    id_variacao INT NOT NULL,
+    id_atributo INT NOT NULL,
+    valor_atributo VARCHAR(100) NOT NULL,
+    PRIMARY KEY (id_variacao, id_atributo),
+    FOREIGN KEY (id_variacao) REFERENCES Variacao(id_variacao) ON DELETE CASCADE,
+    FOREIGN KEY (id_atributo) REFERENCES Atributo(id_atributo)
+);
+
+-- TABELA IMAGENS DO PRODUTO
+CREATE TABLE Produto_Imagem (
+    id_imagem INT PRIMARY KEY AUTO_INCREMENT,
+    id_produto INT NOT NULL,
+    url_imagem VARCHAR(500) NOT NULL,
+    ordem INT DEFAULT 0,
+    principal BOOLEAN DEFAULT FALSE,
+    legenda VARCHAR(200),
+    
+    FOREIGN KEY (id_produto) REFERENCES Produto(id_produto) ON DELETE CASCADE,
+    
+    INDEX idx_imagem_produto (id_produto),
+    INDEX idx_imagem_ordem (ordem)
+);
+
+-- ==============================================
+-- TABELAS DE VENDAS
+-- ==============================================
+
+-- TABELA CARRINHO DE COMPRAS
+CREATE TABLE Carrinho (
+    id_carrinho INT PRIMARY KEY AUTO_INCREMENT,
+    id_usuario INT NULL, -- Pode ser nulo para visitantes
+    sessao_id VARCHAR(100) UNIQUE, -- Para usuários não logados
+    data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_atualizacao DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario) ON DELETE CASCADE,
+    
+    INDEX idx_carrinho_usuario (id_usuario),
+    INDEX idx_carrinho_sessao (sessao_id),
+    INDEX idx_carrinho_data (data_criacao)
+);
+
+-- ITENS DO CARRINHO
+CREATE TABLE Carrinho_Item (
+    id_carrinho_item INT PRIMARY KEY AUTO_INCREMENT,
+    id_carrinho INT NOT NULL,
+    id_produto INT NOT NULL,
+    id_variacao INT NULL, -- Se for produto com variação
+    quantidade INT NOT NULL DEFAULT 1,
+    preco_unitario DECIMAL(10,2) NOT NULL,
+    data_adicao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (id_carrinho) REFERENCES Carrinho(id_carrinho) ON DELETE CASCADE,
+    FOREIGN KEY (id_produto) REFERENCES Produto(id_produto),
+    FOREIGN KEY (id_variacao) REFERENCES Variacao(id_variacao),
+    
+    UNIQUE KEY uk_carrinho_produto (id_carrinho, id_produto, id_variacao),
+    
+    INDEX idx_carrinho_item_carrinho (id_carrinho),
+    INDEX idx_carrinho_item_produto (id_produto)
+);
+
+-- TABELA PEDIDOS
+CREATE TABLE Pedido (
+    id_pedido INT PRIMARY KEY AUTO_INCREMENT,
+    numero_pedido VARCHAR(50) UNIQUE NOT NULL, -- Formato: PED-2024-001
+    id_usuario INT NOT NULL,
+    
+    -- Status
+    status ENUM(
+        'PENDENTE',          -- Criado, aguardando pagamento
+        'AGUARDANDO_PAGAMENTO',
+        'PAGAMENTO_ANALISE',
+        'PAGO',              -- Pagamento confirmado
+        'PROCESSANDO',       -- Separando pedido
+        'ENVIADO',           -- Enviado para transporte
+        'ENTREGUE',          -- Cliente recebeu
+        'CANCELADO',         -- Pedido cancelado
+        'REEMBOLSADO',       -- Valor devolvido
+        'CHARGEBACK'         -- Disputa no cartão
+    ) DEFAULT 'PENDENTE',
+    
+    -- Endereços
+    endereco_entrega_json JSON, -- Cópia do endereço no momento da compra
+    endereco_cobranca_json JSON,
+    
+    -- Valores
+    subtotal DECIMAL(10,2) NOT NULL,
+    desconto DECIMAL(10,2) DEFAULT 0,
+    frete DECIMAL(10,2) DEFAULT 0,
+    total DECIMAL(10,2) NOT NULL,
+    
+    -- Métodos de pagamento
+    metodo_pagamento ENUM('CARTAO', 'BOLETO', 'PIX', 'TRANSFERENCIA', 'DINHEIRO') DEFAULT 'CARTAO',
+    parcelas INT DEFAULT 1,
+    
+    -- Transporte
+    codigo_rastreio VARCHAR(100),
+    transportadora VARCHAR(100),
+    
+    -- Datas importantes
+    data_pedido DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_pagamento DATETIME,
+    data_envio DATETIME,
+    data_entrega DATETIME,
+    data_cancelamento DATETIME,
+    
+    -- Observações
+    observacoes TEXT,
+    nota_fiscal_url VARCHAR(500),
+    
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
+    
+    -- Índices
+    INDEX idx_pedido_usuario (id_usuario),
+    INDEX idx_pedido_status (status),
+    INDEX idx_pedido_numero (numero_pedido),
+    INDEX idx_pedido_data (data_pedido),
+    INDEX idx_pedido_metodo_pagamento (metodo_pagamento)
+);
+
+-- ITENS DO PEDIDO
+CREATE TABLE Pedido_Item (
+    id_pedido_item INT PRIMARY KEY AUTO_INCREMENT,
+    id_pedido INT NOT NULL,
+    id_produto INT NOT NULL,
+    id_variacao INT NULL,
+    nome_produto VARCHAR(200) NOT NULL, -- Cópia no momento da compra
+    sku VARCHAR(50) NOT NULL,
+    quantidade INT NOT NULL,
+    preco_unitario DECIMAL(10,2) NOT NULL,
+    subtotal DECIMAL(10,2) GENERATED ALWAYS AS (quantidade * preco_unitario) STORED,
+    
+    FOREIGN KEY (id_pedido) REFERENCES Pedido(id_pedido) ON DELETE CASCADE,
+    FOREIGN KEY (id_produto) REFERENCES Produto(id_produto),
+    FOREIGN KEY (id_variacao) REFERENCES Variacao(id_variacao),
+    
+    INDEX idx_pedido_item_pedido (id_pedido),
+    INDEX idx_pedido_item_produto (id_produto)
+);
+
+-- ==============================================
+-- TABELAS DE PAGAMENTO
+-- ==============================================
+
+-- TABELA PAGAMENTOS
+CREATE TABLE Pagamento (
+    id_pagamento INT PRIMARY KEY AUTO_INCREMENT,
+    id_pedido INT NOT NULL,
+    gateway_pagamento VARCHAR(50), -- "MERCADO_PAGO", "PAGSEGURO", "PAGARME"
+    id_transacao_gateway VARCHAR(100), -- ID no gateway externo
+    metodo VARCHAR(50),
+    status ENUM(
+        'PENDENTE',
+        'PROCESSANDO',
+        'APROVADO',
+        'RECUSADO',
+        'REEMBOLSADO',
+        'CHARGEBACK'
+    ) DEFAULT 'PENDENTE',
+    valor DECIMAL(10,2) NOT NULL,
+    parcelas INT DEFAULT 1,
+    codigo_autorizacao VARCHAR(100),
+    data_transacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_confirmacao DATETIME,
+    dados_transacao JSON, -- Resposta completa do gateway
+    
+    FOREIGN KEY (id_pedido) REFERENCES Pedido(id_pedido),
+    
+    UNIQUE KEY uk_transacao_gateway (id_transacao_gateway, gateway_pagamento),
+    
+    INDEX idx_pagamento_pedido (id_pedido),
+    INDEX idx_pagamento_status (status),
+    INDEX idx_pagamento_gateway (gateway_pagamento)
+);
+
+-- CARTÕES DE CRÉDITO (tokenizados)
+CREATE TABLE Cartao_Credito (
+    id_cartao INT PRIMARY KEY AUTO_INCREMENT,
+    id_usuario INT NOT NULL,
+    apelido VARCHAR(50), -- "Meu cartão principal"
+    ultimos_quatro CHAR(4) NOT NULL,
+    bandeira VARCHAR(20),
+    token VARCHAR(255) NOT NULL, -- Token do gateway
+    valido BOOLEAN DEFAULT TRUE,
+    principal BOOLEAN DEFAULT FALSE,
+    data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario) ON DELETE CASCADE,
+    
+    INDEX idx_cartao_usuario (id_usuario)
+);
+
+-- ==============================================
+-- TABELAS DE AVALIAÇÕES E REVIEWS
+-- ==============================================
+
+-- AVALIAÇÕES DE PRODUTOS
+CREATE TABLE Avaliacao (
+    id_avaliacao INT PRIMARY KEY AUTO_INCREMENT,
+    id_produto INT NOT NULL,
+    id_usuario INT NOT NULL,
+    id_pedido_item INT NULL, -- Para garantir que comprou o produto
+    
+    -- Avaliação
+    nota INT NOT NULL CHECK (nota BETWEEN 1 AND 5),
+    titulo VARCHAR(200),
+    comentario TEXT,
+    
+    -- Status
+    status ENUM('PENDENTE', 'APROVADO', 'REJEITADO') DEFAULT 'PENDENTE',
+    
+    -- Helpful votes
+    votos_uteis INT DEFAULT 0,
+    votos_inuteis INT DEFAULT 0,
+    
+    -- Datas
+    data_avaliacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_aprovacao DATETIME,
+    
+    FOREIGN KEY (id_produto) REFERENCES Produto(id_produto) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
+    FOREIGN KEY (id_pedido_item) REFERENCES Pedido_Item(id_pedido_item),
+    
+    UNIQUE KEY uk_avaliacao_usuario_produto (id_usuario, id_produto),
+    
+    INDEX idx_avaliacao_produto (id_produto),
+    INDEX idx_avaliacao_usuario (id_usuario),
+    INDEX idx_avaliacao_status (status),
+    INDEX idx_avaliacao_nota (nota)
+);
+
+-- FOTOS DAS AVALIAÇÕES
+CREATE TABLE Avaliacao_Foto (
+    id_foto INT PRIMARY KEY AUTO_INCREMENT,
+    id_avaliacao INT NOT NULL,
+    url_foto VARCHAR(500) NOT NULL,
+    ordem INT DEFAULT 1,
+    
+    FOREIGN KEY (id_avaliacao) REFERENCES Avaliacao(id_avaliacao) ON DELETE CASCADE,
+    
+    INDEX idx_foto_avaliacao (id_avaliacao)
+);
+
+-- VOTOS NAS AVALIAÇÕES
+CREATE TABLE Avaliacao_Voto (
+    id_voto INT PRIMARY KEY AUTO_INCREMENT,
+    id_avaliacao INT NOT NULL,
+    id_usuario INT NOT NULL,
+    util BOOLEAN NOT NULL, -- TRUE = útil, FALSE = inútil
+    data_voto DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (id_avaliacao) REFERENCES Avaliacao(id_avaliacao) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
+    
+    UNIQUE KEY uk_voto_usuario_avaliacao (id_usuario, id_avaliacao),
+    
+    INDEX idx_voto_avaliacao (id_avaliacao)
+);
+
+-- ==============================================
+-- TABELAS DE SUPORTE E ATENDIMENTO
+-- ==============================================
+
+-- TICKETS DE SUPORTE
+CREATE TABLE Ticket_Suporte (
+    id_ticket INT PRIMARY KEY AUTO_INCREMENT,
+    numero_ticket VARCHAR(50) UNIQUE NOT NULL, -- "TKT-2024-001"
+    id_usuario INT NOT NULL,
+    assunto VARCHAR(200) NOT NULL,
+    descricao TEXT NOT NULL,
+    departamento ENUM('VENDAS', 'TECNICO', 'FINANCEIRO', 'ENTREGA', 'OUTROS') DEFAULT 'OUTROS',
+    prioridade ENUM('BAIXA', 'NORMAL', 'ALTA', 'URGENTE') DEFAULT 'NORMAL',
+    status ENUM('ABERTO', 'EM_ATENDIMENTO', 'AGUARDANDO_RESPOSTA', 'RESOLVIDO', 'FECHADO') DEFAULT 'ABERTO',
+    
+    -- Atribuição
+    id_atendente INT NULL, -- Usuário administrador que está atendendo
+    
+    -- Datas
+    data_abertura DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_ultima_resposta DATETIME,
+    data_fechamento DATETIME,
+    
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
+    FOREIGN KEY (id_atendente) REFERENCES Usuario(id_usuario),
+    
+    INDEX idx_ticket_usuario (id_usuario),
+    INDEX idx_ticket_status (status),
+    INDEX idx_ticket_departamento (departamento),
+    INDEX idx_ticket_data (data_abertura)
+);
+
+-- MENSAGENS DOS TICKETS
+CREATE TABLE Ticket_Mensagem (
+    id_mensagem INT PRIMARY KEY AUTO_INCREMENT,
+    id_ticket INT NOT NULL,
+    id_usuario INT NOT NULL, -- Quem enviou a mensagem
+    mensagem TEXT NOT NULL,
+    anexo_url VARCHAR(500),
+    tipo ENUM('CLIENTE', 'ATENDENTE', 'SISTEMA') DEFAULT 'CLIENTE',
+    data_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (id_ticket) REFERENCES Ticket_Suporte(id_ticket) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
+    
+    INDEX idx_mensagem_ticket (id_ticket),
+    INDEX idx_mensagem_usuario (id_usuario),
+    INDEX idx_mensagem_data (data_envio)
+);
+
+-- ==============================================
+-- TABELAS DE MARKETING
+-- ==============================================
+
+-- LISTA DE DESEJOS
+CREATE TABLE Lista_Desejos (
+    id_lista INT PRIMARY KEY AUTO_INCREMENT,
+    id_usuario INT NOT NULL,
+    nome_lista VARCHAR(100) DEFAULT 'Lista de Desejos',
+    publica BOOLEAN DEFAULT FALSE,
+    data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario) ON DELETE CASCADE,
+    
+    UNIQUE KEY uk_lista_usuario_nome (id_usuario, nome_lista),
+    
+    INDEX idx_lista_usuario (id_usuario)
+);
+
+-- ITENS NA LISTA DE DESEJOS
+CREATE TABLE Lista_Desejos_Item (
+    id_item_lista INT PRIMARY KEY AUTO_INCREMENT,
+    id_lista INT NOT NULL,
+    id_produto INT NOT NULL,
+    data_adicao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (id_lista) REFERENCES Lista_Desejos(id_lista) ON DELETE CASCADE,
+    FOREIGN KEY (id_produto) REFERENCES Produto(id_produto) ON DELETE CASCADE,
+    
+    UNIQUE KEY uk_lista_produto (id_lista, id_produto),
+    
+    INDEX idx_lista_item_lista (id_lista),
+    INDEX idx_lista_item_produto (id_produto)
+);
+
+-- CUPONS DE DESCONTO
+CREATE TABLE Cupom (
+    id_cupom INT PRIMARY KEY AUTO_INCREMENT,
+    codigo VARCHAR(50) UNIQUE NOT NULL,
+    descricao VARCHAR(200),
+    tipo_desconto ENUM('PORCENTAGEM', 'VALOR_FIXO') DEFAULT 'PORCENTAGEM',
+    valor_desconto DECIMAL(10,2) NOT NULL,
+    valor_minimo DECIMAL(10,2) DEFAULT 0,
+    quantidade_total INT, -- NULL = ilimitado
+    quantidade_usada INT DEFAULT 0,
+    uso_por_cliente INT DEFAULT 1,
+    data_inicio DATETIME,
+    data_fim DATETIME,
+    ativo BOOLEAN DEFAULT TRUE,
+    data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_cupom_codigo (codigo),
+    INDEX idx_cupom_ativo (ativo),
+    INDEX idx_cupom_data_validade (data_fim)
+);
+
+-- USO DE CUPONS
+CREATE TABLE Cupom_Uso (
+    id_uso INT PRIMARY KEY AUTO_INCREMENT,
+    id_cupom INT NOT NULL,
+    id_usuario INT NOT NULL,
+    id_pedido INT NOT NULL,
+    valor_desconto_aplicado DECIMAL(10,2) NOT NULL,
+    data_uso DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (id_cupom) REFERENCES Cupom(id_cupom),
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
+    FOREIGN KEY (id_pedido) REFERENCES Pedido(id_pedido),
+    
+    UNIQUE KEY uk_cupom_pedido (id_cupom, id_pedido),
+    
+    INDEX idx_cupom_uso_cupom (id_cupom),
+    INDEX idx_cupom_uso_usuario (id_usuario)
+);
+
+-- ==============================================
+-- TABELAS DE LOGS E AUDITORIA
+-- ==============================================
+
+-- LOG DE ATIVIDADES DOS USUÁRIOS
+CREATE TABLE Log_Atividade (
+    id_log INT PRIMARY KEY AUTO_INCREMENT,
+    id_usuario INT,
+    acao VARCHAR(100) NOT NULL,
+    detalhes TEXT,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    data_log DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_log_usuario (id_usuario),
+    INDEX idx_log_acao (acao),
+    INDEX idx_log_data (data_log)
+);
+
+-- LOG DE ESTOQUE
+CREATE TABLE Log_Estoque (
+    id_log_estoque INT PRIMARY KEY AUTO_INCREMENT,
+    id_produto INT NOT NULL,
+    id_variacao INT NULL,
+    tipo_movimento ENUM('ENTRADA', 'SAIDA', 'AJUSTE', 'DEVOLUCAO') NOT NULL,
+    quantidade INT NOT NULL,
+    estoque_anterior INT NOT NULL,
+    estoque_atual INT NOT NULL,
+    motivo VARCHAR(200),
+    id_pedido INT NULL,
+    id_usuario INT, -- Quem fez a alteração
+    data_movimento DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (id_produto) REFERENCES Produto(id_produto),
+    FOREIGN KEY (id_variacao) REFERENCES Variacao(id_variacao),
+    FOREIGN KEY (id_pedido) REFERENCES Pedido(id_pedido),
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
+    
+    INDEX idx_log_estoque_produto (id_produto),
+    INDEX idx_log_estoque_tipo (tipo_movimento),
+    INDEX idx_log_estoque_data (data_movimento)
+);
+
+-- ==============================================
+-- STORED PROCEDURES ESSENCIAIS
+-- ==============================================
+
+DELIMITER //
+
+-- PROCEDURE: GERAR NÚMERO DE PEDIDO ÚNICO
+CREATE PROCEDURE sp_gerar_numero_pedido(OUT numero VARCHAR(50))
+BEGIN
+    DECLARE ano INT;
+    DECLARE sequencia INT;
+    
+    SET ano = YEAR(CURDATE());
+    
+    -- Busca última sequência do ano
+    SELECT COALESCE(MAX(CAST(SUBSTRING(numero_pedido, 10) AS UNSIGNED)), 0) + 1
+    INTO sequencia
+    FROM Pedido
+    WHERE numero_pedido LIKE CONCAT('PED-', ano, '-%');
+    
+    SET numero = CONCAT('PED-', ano, '-', LPAD(sequencia, 6, '0'));
+END //
+
+-- PROCEDURE: FINALIZAR CARRINHO E CRIAR PEDIDO
+CREATE PROCEDURE sp_finalizar_compra(
+    IN p_id_carrinho INT,
+    IN p_id_usuario INT,
+    IN p_id_endereco_entrega INT,
+    IN p_id_endereco_cobranca INT,
+    IN p_metodo_pagamento VARCHAR(50),
+    IN p_id_cupom INT,
+    OUT p_id_pedido INT
+)
+BEGIN
+    DECLARE v_subtotal DECIMAL(10,2);
+    DECLARE v_frete DECIMAL(10,2);
+    DECLARE v_desconto DECIMAL(10,2) DEFAULT 0;
+    DECLARE v_total DECIMAL(10,2);
+    DECLARE v_numero_pedido VARCHAR(50);
+    DECLARE v_endereco_entrega JSON;
+    DECLARE v_endereco_cobranca JSON;
+    DECLARE v_cupom_valido BOOLEAN DEFAULT TRUE;
+    DECLARE v_erro VARCHAR(500);
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+    
+    START TRANSACTION;
+    
+    -- 1. Verificar se carrinho existe e tem itens
+    IF NOT EXISTS (SELECT 1 FROM Carrinho WHERE id_carrinho = p_id_carrinho) THEN
+        SET v_erro = 'Carrinho não encontrado';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_erro;
+    END IF;
+    
+    -- 2. Calcular subtotal do carrinho
+    SELECT SUM(ci.quantidade * ci.preco_unitario)
+    INTO v_subtotal
+    FROM Carrinho_Item ci
+    WHERE ci.id_carrinho = p_id_carrinho;
+    
+    -- 3. Calcular frete (simplificado)
+    SET v_frete = 15.00; -- Em sistema real, calcular com API de frete
+    
+    -- 4. Aplicar cupom se existir
+    IF p_id_cupom IS NOT NULL THEN
+        IF EXISTS (
+            SELECT 1 FROM Cupom 
+            WHERE id_cupom = p_id_cupom 
+            AND ativo = TRUE 
+            AND (quantidade_total IS NULL OR quantidade_usada < quantidade_total)
+            AND (data_inicio IS NULL OR data_inicio <= NOW())
+            AND (data_fim IS NULL OR data_fim >= NOW())
+        ) THEN
+            SELECT 
+                CASE 
+                    WHEN tipo_desconto = 'PORCENTAGEM' THEN v_subtotal * (valor_desconto / 100)
+                    ELSE valor_desconto
+                END
+            INTO v_desconto
+            FROM Cupom 
+            WHERE id_cupom = p_id_cupom;
+            
+            -- Validar valor mínimo
+            IF (SELECT valor_minimo FROM Cupom WHERE id_cupom = p_id_cupom) > v_subtotal THEN
+                SET v_desconto = 0;
+            END IF;
+        ELSE
+            SET v_cupom_valido = FALSE;
+        END IF;
+    END IF;
+    
+    -- 5. Calcular total
+    SET v_total = v_subtotal + v_frete - v_desconto;
+    
+    -- 6. Buscar endereços
+    IF p_id_endereco_entrega IS NOT NULL THEN
+        SELECT JSON_OBJECT(
+            'cep', cep,
+            'logradouro', logradouro,
+            'numero', numero,
+            'complemento', complemento,
+            'bairro', bairro,
+            'cidade', cidade,
+            'estado', estado,
+            'destinatario', destinatario
+        )
+        INTO v_endereco_entrega
+        FROM Endereco
+        WHERE id_endereco = p_id_endereco_entrega AND id_usuario = p_id_usuario;
+    END IF;
+    
+    IF p_id_endereco_cobranca IS NOT NULL THEN
+        SELECT JSON_OBJECT(
+            'cep', cep,
+            'logradouro', logradouro,
+            'numero', numero,
+            'complemento', complemento,
+            'bairro', bairro,
+            'cidade', cidade,
+            'estado', estado,
+            'destinatario', destinatario
+        )
+        INTO v_endereco_cobranca
+        FROM Endereco
+        WHERE id_endereco = p_id_endereco_cobranca AND id_usuario = p_id_usuario;
+    END IF;
+    
+    -- 7. Gerar número do pedido
+    CALL sp_gerar_numero_pedido(v_numero_pedido);
+    
+    -- 8. Criar pedido
+    INSERT INTO Pedido (
+        numero_pedido,
+        id_usuario,
+        status,
+        endereco_entrega_json,
+        endereco_cobranca_json,
+        subtotal,
+        desconto,
+        frete,
+        total,
+        metodo_pagamento
+    ) VALUES (
+        v_numero_pedido,
+        p_id_usuario,
+        'PENDENTE',
+        v_endereco_entrega,
+        v_endereco_cobranca,
+        v_subtotal,
+        v_desconto,
+        v_frete,
+        v_total,
+        p_metodo_pagamento
+    );
+    
+    SET p_id_pedido = LAST_INSERT_ID();
+    
+    -- 9. Mover itens do carrinho para pedido
+    INSERT INTO Pedido_Item (
+        id_pedido,
+        id_produto,
+        id_variacao,
+        nome_produto,
+        sku,
+        quantidade,
+        preco_unitario
+    )
+    SELECT 
+        p_id_pedido,
+        ci.id_produto,
+        ci.id_variacao,
+        p.nome_produto,
+        COALESCE(v.sku_variacao, p.sku),
+        ci.quantidade,
+        ci.preco_unitario
+    FROM Carrinho_Item ci
+    JOIN Produto p ON ci.id_produto = p.id_produto
+    LEFT JOIN Variacao v ON ci.id_variacao = v.id_variacao
+    WHERE ci.id_carrinho = p_id_carrinho;
+    
+    -- 10. Atualizar estoque
+    UPDATE Produto p
+    JOIN Carrinho_Item ci ON p.id_produto = ci.id_produto
+    SET p.estoque = p.estoque - ci.quantidade
+    WHERE ci.id_carrinho = p_id_carrinho
+    AND p.gerenciar_estoque = TRUE
+    AND p.baixa_estoque = TRUE;
+    
+    -- 11. Atualizar estoque das variações
+    UPDATE Variacao v
+    JOIN Carrinho_Item ci ON v.id_variacao = ci.id_variacao
+    SET v.estoque = v.estoque - ci.quantidade
+    WHERE ci.id_carrinho = p_id_carrinho;
+    
+    -- 12. Registrar log de estoque
+    INSERT INTO Log_Estoque (
+        id_produto,
+        id_variacao,
+        tipo_movimento,
+        quantidade,
+        estoque_anterior,
+        estoque_atual,
+        motivo,
+        id_pedido,
+        id_usuario
+    )
+    SELECT 
+        ci.id_produto,
+        ci.id_variacao,
+        'SAIDA',
+        ci.quantidade,
+        p.estoque + ci.quantidade,
+        p.estoque,
+        'VENDA - PEDIDO ' || v_numero_pedido,
+        p_id_pedido,
+        p_id_usuario
+    FROM Carrinho_Item ci
+    JOIN Produto p ON ci.id_produto = p.id_produto
+    WHERE ci.id_carrinho = p_id_carrinho;
+    
+    -- 13. Atualizar cupom se usado
+    IF p_id_cupom IS NOT NULL AND v_cupom_valido = TRUE THEN
+        UPDATE Cupom 
+        SET quantidade_usada = quantidade_usada + 1
+        WHERE id_cupom = p_id_cupom;
+        
+        INSERT INTO Cupom_Uso (id_cupom, id_usuario, id_pedido, valor_desconto_aplicado)
+        VALUES (p_id_cupom, p_id_usuario, p_id_pedido, v_desconto);
+    END IF;
+    
+    -- 14. Limpar carrinho
+    DELETE FROM Carrinho WHERE id_carrinho = p_id_carrinho;
+    
+    COMMIT;
+    
+    -- Retornar dados do pedido criado
+    SELECT * FROM Pedido WHERE id_pedido = p_id_pedido;
+    
+END //
+
+-- PROCEDURE: ADICIONAR PRODUTO AO CARRINHO
+CREATE PROCEDURE sp_adicionar_carrinho(
+    IN p_id_usuario INT,
+    IN p_sessao_id VARCHAR(100),
+    IN p_id_produto INT,
+    IN p_id_variacao INT,
+    IN p_quantidade INT
+)
+BEGIN
+    DECLARE v_id_carrinho INT;
+    DECLARE v_preco DECIMAL(10,2);
+    DECLARE v_estoque_disponivel INT;
+    
+    -- Encontrar ou criar carrinho
+    IF p_id_usuario IS NOT NULL THEN
+        SELECT id_carrinho INTO v_id_carrinho
+        FROM Carrinho
+        WHERE id_usuario = p_id_usuario
+        ORDER BY data_criacao DESC
+        LIMIT 1;
+    ELSE
+        SELECT id_carrinho INTO v_id_carrinho
+        FROM Carrinho
+        WHERE sessao_id = p_sessao_id
+        ORDER BY data_criacao DESC
+        LIMIT 1;
+    END IF;
+    
+    IF v_id_carrinho IS NULL THEN
+        INSERT INTO Carrinho (id_usuario, sessao_id)
+        VALUES (p_id_usuario, p_sessao_id);
+        SET v_id_carrinho = LAST_INSERT_ID();
+    END IF;
+    
+    -- Verificar estoque
+    IF p_id_variacao IS NOT NULL THEN
+        SELECT estoque INTO v_estoque_disponivel
+        FROM Variacao
+        WHERE id_variacao = p_id_variacao;
+        
+        SELECT COALESCE(v.preco_adicional, 0) + p.preco_base
+        INTO v_preco
+        FROM Produto p
+        LEFT JOIN Variacao v ON p.id_produto = v.id_produto
+        WHERE v.id_variacao = p_id_variacao;
+    ELSE
+        SELECT estoque, preco_base
+        INTO v_estoque_disponivel, v_preco
+        FROM Produto
+        WHERE id_produto = p_id_produto;
+    END IF;
+    
+    IF v_estoque_disponivel < p_quantidade THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Estoque insuficiente';
+    END IF;
+    
+    -- Adicionar ou atualizar item no carrinho
+    INSERT INTO Carrinho_Item (id_carrinho, id_produto, id_variacao, quantidade, preco_unitario)
+    VALUES (v_id_carrinho, p_id_produto, p_id_variacao, p_quantidade, v_preco)
+    ON DUPLICATE KEY UPDATE
+        quantidade = quantidade + p_quantidade,
+        data_adicao = CURRENT_TIMESTAMP;
+    
+    -- Retornar carrinho atualizado
+    SELECT 
+        c.*,
+        ci.id_carrinho_item,
+        ci.id_produto,
+        ci.id_variacao,
+        ci.quantidade,
+        ci.preco_unitario,
+        (ci.quantidade * ci.preco_unitario) as subtotal_item
+    FROM Carrinho c
+    LEFT JOIN Carrinho_Item ci ON c.id_carrinho = ci.id_carrinho
+    WHERE c.id_carrinho = v_id_carrinho;
+    
+END //
+
+DELIMITER ;
+
+-- ==============================================
+-- TRIGGERS ESSENCIAIS
+-- ==============================================
+
+DELIMITER //
+
+-- TRIGGER: ATUALIZAR MÉDIA DE AVALIAÇÕES DO PRODUTO
+CREATE TRIGGER tr_atualizar_media_avaliacao
+AFTER INSERT ON Avaliacao
+FOR EACH ROW
+BEGIN
+    DECLARE v_media DECIMAL(3,2);
+    DECLARE v_total_avaliacoes INT;
+    
+    IF NEW.status = 'APROVADO' THEN
+        SELECT 
+            AVG(nota),
+            COUNT(*)
+        INTO v_media, v_total_avaliacoes
+        FROM Avaliacao
+        WHERE id_produto = NEW.id_produto 
+        AND status = 'APROVADO';
+        
+        -- Atualizar produto com a média (opcional - pode ser feito em view)
+        -- UPDATE Produto SET media_avaliacoes = v_media WHERE id_produto = NEW.id_produto;
+    END IF;
+END //
+
+-- TRIGGER: VALIDAR ESTOQUE MÍNIMO
+CREATE TRIGGER tr_validar_estoque_minimo
+AFTER UPDATE ON Produto
+FOR EACH ROW
+BEGIN
+    IF NEW.estoque < NEW.estoque_minimo AND NEW.estoque_minimo > 0 THEN
+        -- Registrar alerta (em sistema real, poderia enviar email)
+        INSERT INTO Log_Atividade (id_usuario, acao, detalhes)
+        VALUES (NULL, 'ESTOQUE_MINIMO', 
+                CONCAT('Produto ', NEW.nome_produto, ' (', NEW.sku, ') está abaixo do estoque mínimo. Estoque atual: ', NEW.estoque));
+    END IF;
+END //
+
+-- TRIGGER: GERAR SLUG AUTOMATICAMENTE
+CREATE TRIGGER tr_gerar_slug_produto
+BEFORE INSERT ON Produto
+FOR EACH ROW
+BEGIN
+    IF NEW.slug IS NULL OR NEW.slug = '' THEN
+        SET NEW.slug = LOWER(REPLACE(REPLACE(REPLACE(NEW.nome_produto, ' ', '-'), 'ç', 'c'), 'ã', 'a'));
+    END IF;
+END //
+
+DELIMITER ;
+
+-- ==============================================
+-- VIEWS IMPORTANTES
+-- ==============================================
+
+-- VIEW: CATÁLOGO DE PRODUTOS COM INFORMAÇÕES COMPLETAS
+CREATE VIEW vw_catalogo_produtos AS
+SELECT 
+    p.id_produto,
+    p.sku,
+    p.nome_produto,
+    p.slug,
+    p.descricao_curta,
+    p.preco_base,
+    p.preco_promocional,
+    CASE 
+        WHEN p.preco_promocional IS NOT NULL THEN p.preco_promocional
+        ELSE p.preco_base
+    END as preco_venda,
+    c.nome_categoria,
+    c.slug as categoria_slug,
+    p.estoque,
+    p.destaque,
+    p.novidade,
+    p.mais_vendido,
+    p.data_publicacao,
+    -- Média de avaliações
+    (SELECT AVG(a.nota) FROM Avaliacao a 
+     WHERE a.id_produto = p.id_produto AND a.status = 'APROVADO') as media_avaliacoes,
+    -- Total de avaliações
+    (SELECT COUNT(*) FROM Avaliacao a 
+     WHERE a.id_produto = p.id_produto AND a.status = 'APROVADO') as total_avaliacoes,
+    -- Imagem principal
+    (SELECT pi.url_imagem FROM Produto_Imagem pi 
+     WHERE pi.id_produto = p.id_produto AND pi.principal = TRUE LIMIT 1) as imagem_principal
+FROM Produto p
+JOIN Categoria c ON p.id_categoria = c.id_categoria
+WHERE p.disponivel = TRUE 
+AND p.visibilidade = 'PUBLICO'
+AND c.ativa = TRUE;
+
+-- VIEW: RELATÓRIO DE VENDAS DIÁRIAS
+CREATE VIEW vw_vendas_diarias AS
+SELECT 
+    DATE(p.data_pedido) as data_venda,
+    COUNT(p.id_pedido) as total_pedidos,
+    SUM(p.total) as receita_bruta,
+    AVG(p.total) as ticket_medio,
+    COUNT(DISTINCT p.id_usuario) as clientes_unicos,
+    SUM(CASE WHEN p.status = 'CANCELADO' THEN 1 ELSE 0 END) as pedidos_cancelados
+FROM Pedido p
+WHERE p.status NOT IN ('PENDENTE', 'CANCELADO')
+GROUP BY DATE(p.data_pedido)
+ORDER BY data_venda DESC;
+
+-- VIEW: ESTOQUE BAIXO
+CREATE VIEW vw_estoque_baixo AS
+SELECT 
+    p.id_produto,
+    p.sku,
+    p.nome_produto,
+    c.nome_categoria,
+    p.estoque,
+    p.estoque_minimo,
+    p.estoque - p.estoque_minimo as diferenca,
+    CASE 
+        WHEN p.estoque = 0 THEN 'ESGOTADO'
+        WHEN p.estoque < p.estoque_minimo THEN 'REPOR URGENTE'
+        WHEN p.estoque <= (p.estoque_minimo * 2) THEN 'ATENÇÃO'
+        ELSE 'NORMAL'
+    END as status_estoque
+FROM Produto p
+JOIN Categoria c ON p.id_categoria = c.id_categoria
+WHERE p.gerenciar_estoque = TRUE
+AND p.disponivel = TRUE
+ORDER BY p.estoque ASC;
+
+-- VIEW: CLIENTES MAIS VALIOSOS
+CREATE VIEW vw_clientes_top AS
+SELECT 
+    u.id_usuario,
+    u.nome_completo,
+    u.email,
+    u.cidade,
+    u.estado,
+    COUNT(DISTINCT p.id_pedido) as total_pedidos,
+    SUM(p.total) as total_gasto,
+    MAX(p.data_pedido) as ultima_compra,
+    DATEDIFF(CURDATE(), MAX(p.data_pedido)) as dias_sem_comprar,
+    CASE 
+        WHEN COUNT(p.id_pedido) = 0 THEN 'NOVO'
+        WHEN DATEDIFF(CURDATE(), MAX(p.data_pedido)) <= 30 THEN 'ATIVO'
+        WHEN DATEDIFF(CURDATE(), MAX(p.data_pedido)) <= 90 THEN 'POUCO ATIVO'
+        ELSE 'INATIVO'
+    END as segmento_cliente
+FROM Usuario u
+LEFT JOIN Pedido p ON u.id_usuario = p.id_usuario 
+    AND p.status NOT IN ('CANCELADO', 'PENDENTE')
+GROUP BY u.id_usuario
+ORDER BY total_gasto DESC;
+
+-- VIEW: PRODUTOS MAIS VENDIDOS
+CREATE VIEW vw_produtos_mais_vendidos AS
+SELECT 
+    p.id_produto,
+    p.sku,
+    p.nome_produto,
+    c.nome_categoria,
+    SUM(pi.quantidade) as quantidade_vendida,
+    COUNT(DISTINCT ped.id_pedido) as vezes_vendido,
+    SUM(pi.quantidade * pi.preco_unitario) as receita_gerada
+FROM Produto p
+JOIN Categoria c ON p.id_categoria = c.id_categoria
+JOIN Pedido_Item pi ON p.id_produto = pi.id_produto
+JOIN Pedido ped ON pi.id_pedido = ped.id_pedido 
+    AND ped.status NOT IN ('CANCELADO', 'PENDENTE')
+GROUP BY p.id_produto
+ORDER BY quantidade_vendida DESC;
+
+-- ==============================================
+-- INSERTS INICIAIS (DADOS DE EXEMPLO)
+-- ==============================================
+
+-- Inserir categorias principais
+INSERT INTO Categoria (nome_categoria, slug, descricao, ordem) VALUES
+('Eletrônicos', 'eletronicos', 'Produtos eletrônicos em geral', 1),
+('Smartphones', 'smartphones', 'Celulares e smartphones', 2),
+('Notebooks', 'notebooks', 'Computadores portáteis', 3),
+('Tablets', 'tablets', 'Tablets e iPads', 4),
+('Acessórios', 'acessorios', 'Acessórios para eletrônicos', 5);
+
+-- Atualizar subcategorias
+UPDATE Categoria SET id_categoria_pai = 1 WHERE id_categoria IN (2, 3, 4, 5);
+
+-- Inserir atributos comuns
+INSERT INTO Atributo (nome_atributo, tipo, visivel_variacao, ordem) VALUES
+('Cor', 'COR', TRUE, 1),
+('Tamanho', 'TAMANHO', TRUE, 2),
+('Memória RAM', 'TEXTO', FALSE, 3),
+('Armazenamento', 'TEXTO', FALSE, 4),
+('Processador', 'TEXTO', FALSE, 5),
+('Tela', 'TEXTO', FALSE, 6),
+('Marca', 'TEXTO', FALSE, 7);
+
+-- Inserir usuário administrador (senha: Admin123)
+INSERT INTO Usuario (
+    tipo, 
+    nome_completo, 
+    email, 
+    senha_hash, 
+    email_verificado, 
+    ativo
+) VALUES (
+    'ADMIN',
+    'Administrador do Sistema',
+    'admin@ecommerce.com',
+    '$2y$10$YourHashHere', -- Use password_hash() no PHP
+    TRUE,
+    TRUE
+);
+
+-- Inserir cupom de exemplo
+INSERT INTO Cupom (
+    codigo,
+    descricao,
+    tipo_desconto,
+    valor_desconto,
+    valor_minimo,
+    quantidade_total,
+    data_inicio,
+    data_fim,
+    ativo
+) VALUES (
+    'PRIMEIRACOMPRA',
+    '10% de desconto na primeira compra',
+    'PORCENTAGEM',
+    10.00,
+    100.00,
+    1000,
+    CURDATE(),
+    DATE_ADD(CURDATE(), INTERVAL 1 YEAR),
+    TRUE
+);
+
+-- ==============================================
+-- CÓDIGO PARA TESTES
+-- ==============================================
+
+-- Testar procedure de adicionar ao carrinho
+CALL sp_adicionar_carrinho(1, NULL, 1, NULL, 2);
+
+-- Ver carrinho
+SELECT * FROM Carrinho_Item;
+
+-- Testar view de catálogo
+SELECT * FROM vw_catalogo_produtos LIMIT 10;
+
+-- Testar view de estoque baixo
+SELECT * FROM vw_estoque_baixo WHERE status_estoque != 'NORMAL';
+
+-- Testar view de clientes top
+SELECT * FROM vw_clientes_top LIMIT 5;
+
+-- Testar view de produtos mais vendidos
+SELECT * FROM vw_produtos_mais_vendidos LIMIT 10;

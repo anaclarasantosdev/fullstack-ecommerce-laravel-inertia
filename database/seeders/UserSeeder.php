@@ -2,8 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\Endereco;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
 class UserSeeder extends Seeder
@@ -11,12 +13,15 @@ class UserSeeder extends Seeder
     /**
      * Run the database seeds.
      */
+
     public function run(): void
     {
-        User::factory()->create([
-            'name' => 'Ana Clara Santos',
-            'email' => 'anaclarasantos.dev@gmail.com',
-            'password' => bcrypt('Clara1701@'),
-        ]);
-    }
+        User::create([
+            'name' => 'Administrador do Sistema',           
+            'email' => 'admin@example.com',
+            'password' => Hash::make('admin12345'),
+        ]);}
+
+
+
 }

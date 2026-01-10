@@ -13,9 +13,13 @@ return new class extends Migration
     {
         Schema::create('variacao_atributo', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('id_variacao')->constrained('variacao', 'id_variacao')->onDelete('cascade');
+            $table->foreignId('id_atributo')->constrained('atributo', 'id_atributo')->onDelete('cascade');
+            $table->string('valor_atributo', 100);
             $table->timestamps();
         });
     }
+
 
     /**
      * Reverse the migrations.

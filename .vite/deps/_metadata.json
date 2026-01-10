@@ -1,0 +1,43 @@
+{
+  "hash": "8e0ad997",
+  "configHash": "8907f599",
+  "lockfileHash": "146c267f",
+  "browserHash": "f6ad2634",
+  "optimized": {
+    "@inertiajs/react": {
+      "src": "../../node_modules/@inertiajs/react/dist/index.esm.js",
+      "file": "@inertiajs_react.js",
+      "fileHash": "cc9bc7ff",
+      "needsInterop": false
+    },
+    "laravel-vite-plugin/inertia-helpers": {
+      "src": "../../node_modules/laravel-vite-plugin/inertia-helpers/index.js",
+      "file": "laravel-vite-plugin_inertia-helpers.js",
+      "fileHash": "95e23cda",
+      "needsInterop": false
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "a9b50049",
+      "needsInterop": true
+    },
+    "axios": {
+      "src": "../../node_modules/axios/index.js",
+      "file": "axios.js",
+      "fileHash": "2e37f222",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-Q3MD52DT": {
+      "file": "chunk-Q3MD52DT.js"
+    },
+    "chunk-BNM2N4IL": {
+      "file": "chunk-BNM2N4IL.js"
+    },
+    "chunk-G3PMV62Z": {
+      "file": "chunk-G3PMV62Z.js"
+    }
+  }
+}
