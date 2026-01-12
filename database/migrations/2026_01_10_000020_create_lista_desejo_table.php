@@ -11,8 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('log_estoque', function (Blueprint $table) {
+        Schema::create('lista_desejo', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->string('nome_lista')->default('Lista de Desejos');
+            $table->boolean('publica')->default(false);
+            $table->unique(['user_id','nome_lista']);
+
             $table->timestamps();
         });
     }
@@ -22,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('log_estoque');
+        Schema::dropIfExists('lista_desejo');
     }
 };

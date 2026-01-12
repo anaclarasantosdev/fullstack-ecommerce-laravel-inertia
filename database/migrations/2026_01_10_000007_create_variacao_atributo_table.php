@@ -11,17 +11,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('log_atividade', function (Blueprint $table) {
+        Schema::create('variacao_atributo', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('variacao_id')->constrained('variacaos')->onDelete('cascade');
+            $table->foreignId('atributo_id')->constrained('atributos')->onDelete('cascade');
+            $table->string('valor_atributo', 100);
             $table->timestamps();
         });
     }
+
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('log_atividade');
+        Schema::dropIfExists('variacao_atributo');
     }
 };

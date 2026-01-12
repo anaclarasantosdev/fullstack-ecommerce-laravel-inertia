@@ -6,33 +6,56 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('tipo')->enum('cliente', 'administrador', 'vendedor')->default('cliente');
-            $table->varchar('cpf_cnpj', 20)->unique();
-            $table->date('data_nascimento')->nullable();
-            $table->string('telefone', 20)->nullable();
-            $table->string('avatar_url', 500)->nullable();
-            $table->string('google_id', 100)->unique()->nullable();
+            
+            // Tipo de usuário
+            $table->enum('tipo', ['cliente', 'administrador', 'vendedor'])->default('cliente');
+            
+            // Documento (CPF para pessoa física, CNPJ para PJ)
+            $table->string('cpf_cnpj', 20)->unique()->nullable();
+            
+            // Dados pessoais
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            
+            // Dados adicionais
+            $table->date('data_nascimento')->nullable();
+            $table->string('telefone', 20)->nullable();
+            $table->string('avatar_url', 500)->nullable();
+            
+            // Login social
+            $table->string('google_id', 100)->unique()->nullable();
+            $table->string('facebook_id', 100)->unique()->nullable(); // Adicionei também
+            
+            // Status e preferências
             $table->boolean('ativo')->default(true);
             $table->boolean('receber_newsletter')->default(true);
-            $table->date('ultimo_login')->nullable();
-            $table->string('password');
+            
+            // Datas importantes
+            $table->timestamp('ultimo_login')->nullable(); // Mudei de date para timestamp
             $table->rememberToken();
             $table->timestamps();
-
-            $table->index('email', 'idx_usuario_email');
-            $table->index('tipo', 'idx_usuario_tipo');
-    });
-
+            $table->softDeletes(); // Adicionei para exclusão lógica
+            
+            // Índices - FORMA CORRETA
+            $table->index('email'); // Laravel gera nome automaticamente
+            $table->index('tipo');
+            $table->index('cpf_cnpj');
+            $table->index('ativo');
+            $table->index('created_at');
+            
+            // Se quiser nome personalizado nos índices (menos comum):
+            // $table->index('email', 'idx_usuario_email');
+            // $table->index('tipo', 'idx_usuario_tipo');
+        }); // ← AQUI FECHA CORRETAMENTE
+    /**
+     * Run the migrations.
+        */
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');

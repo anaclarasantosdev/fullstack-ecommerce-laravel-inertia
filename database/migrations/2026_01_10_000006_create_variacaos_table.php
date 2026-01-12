@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('variacaos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('id_produto')->constrained('produto', 'id_produto')->onDelete('cascade');
+            $table->foreignId('produto_id')->constrained('produtos')->onDelete('cascade');
             $table->string('sku_variacao', 50)->unique();
             $table->string('descricao_variacao', 200);
             $table->decimal('preco_adicional', 10, 2)->default(0);
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->boolean('ativa')->default(true);
             $table->timestamps();
 
-            $table->index('id_produto', 'idx_variacao_produto');
+            $table->index('produto_id');
         });
     }
 

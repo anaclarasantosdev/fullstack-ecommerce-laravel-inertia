@@ -13,15 +13,13 @@ return new class extends Migration
     {
         Schema::create('produto_imagens', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('produto_id')->constrained('produto', 'id_produto')->onDelete('cascade');
+            $table->foreignId('produto_id')->constrained('produtos')->onDelete('cascade');
             $table->string('url_imagem', 500);
             $table->integer('ordem')->default(0);
             $table->boolean('principal')->default(false);
             $table->string('legenda', 200)->nullable();
             $table->timestamps();
-
-            $table->index('produto_id', 'idx_imagem_produto');
-            $table->index('ordem', 'idx_imagem_ordem');
+            $table->index('ordem');
         });
     }
 

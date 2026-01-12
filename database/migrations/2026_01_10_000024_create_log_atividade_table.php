@@ -11,8 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('ticket_mensagem', function (Blueprint $table) {
+        Schema::create('log_atividade', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users');
+            $table->string('acao');
+            $table->text('detalhes');
+            $table->string('ip_adress');
+            $table->text('user_agent');
+            $table->index('acao');
             $table->timestamps();
         });
     }
@@ -22,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('ticket_mensagem');
+        Schema::dropIfExists('log_atividade');
     }
 };

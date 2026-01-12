@@ -11,8 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('lista_desejos_itens', function (Blueprint $table) {
+        Schema::create('avaliacao_fotos', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('avaliacao_id')->constrained('avaliacoes')->onDelete('cascade');
+            $table->string('url_foto');
+            $table->integer('ordem')->nullable()->default(1);
             $table->timestamps();
         });
     }
@@ -22,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('lista_desejos_itens');
+        Schema::dropIfExists('avaliacao_fotos');
     }
 };

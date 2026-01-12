@@ -13,16 +13,16 @@ return new class extends Migration
     {
         Schema::create('pedido_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('pedido_id');
-            $table->foreignId('produto_id');
-            $table->foreignId('variacao_id')->nullable();
+            $table->foreignId('pedido_id')->constrained('pedidos');
+            $table->foreignId('produto_id')->consrained('produtos');
+            $table->foreignId('variacao_id')->nullable()->constrained('variacaos');
             $table->string('nome_produto', 200);
             $table->string('sku', 50);      
             $table->integer('quantidade');
             $table->decimal('preco_unitario', 10, 2);
             $table->decimal('subtotal', 10, 2)->storedAs('quantidade * preco_unitario');    
-           $table->index('pedido_id', 'idx_pedido_item_pedido');
-            $table->index('produto_id', 'idx_pedido_item_produto');     
+            $table->index('pedido_id');
+            $table->index('produto_id');     
             $table->timestamps();
         });
     }

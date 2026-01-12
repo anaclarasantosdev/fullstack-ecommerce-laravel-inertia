@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('cupom_usos', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('cupom_id')->constrained('cupoms');
+            $table->foreignId('user_id')->constrainde('users');
+            $table->foreignId('pedido_id')->constrained('pedidos');
+            $table->decimal('valor_desconto_aplicado', 10,2);
+            $table->timestamp('data_uso');
+            $table->unique(['cupom_id', 'pedido_id']);
             $table->timestamps();
         });
     }

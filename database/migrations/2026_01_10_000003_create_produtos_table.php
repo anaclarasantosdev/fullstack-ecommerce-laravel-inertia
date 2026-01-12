@@ -35,14 +35,13 @@ return new class extends Migration
             $table->boolean('mais_vendido')->default(false);
             $table->enum('visibilidade', ['PUBLICO', 'PRIVADO', 'OCULTO'])->default('PUBLICO');
             $table->dateTime('data_publicacao')->default(DB::raw('CURRENT_TIMESTAMP'));
-            $table->foreign('id_categoria')->references('id')->on('categorias');
-            $table->index('id_categoria', 'idx_produto_categoria');
-            $table->index('slug', 'idx_produto_slug');
-            $table->index('sku', 'idx_produto_sku');
-            $table->index('destaque', 'idx_produto_destaque');
-            $table->index('preco_base', 'idx_produto_preco');
-            $table->index('disponivel', 'idx_produto_disponivel');
-            $table->index('data_publicacao', 'idx_produto_data_publicacao');        
+            $table->foreignId('categoria_id')->constrained('categorias');
+            $table->index('slug');
+            $table->index('sku');
+            $table->index('destaque');
+            $table->index('preco_base');
+            $table->index('disponivel');
+            $table->index('data_publicacao');        
             $table->timestamps();
         });
 

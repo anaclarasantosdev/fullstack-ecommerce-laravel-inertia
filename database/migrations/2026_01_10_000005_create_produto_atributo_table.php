@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('valor');
             $table->timestamps();
-            $table->foreign('id_produto')->references('id')->on('produtos')->onDelete('cascade');
-            $table->foreign('id_atributo')->references('id')->on('atributos')->onDelete('cascade');
-            $table->index(['id_produto', 'id_atributo']);
+            $table->foreignId('produto_id')->constrained('produtos')->onDelete('cascade');
+            $table->foreignId('atributo_id')->constrained('atributos')->onDelete('cascade');
+            $table->index(['produto_id', 'atributo_id']);
         });
 
     }

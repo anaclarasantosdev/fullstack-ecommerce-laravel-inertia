@@ -1,7 +1,9 @@
 import {
-  require_react,
   require_react_dom
-} from "./chunk-Q3MD52DT.js";
+} from "./chunk-GYTVARJC.js";
+import {
+  require_react
+} from "./chunk-BHGA32AN.js";
 import {
   axios_default,
   isAxiosError,

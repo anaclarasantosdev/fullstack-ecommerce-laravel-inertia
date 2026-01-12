@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('pedidos', function (Blueprint $table) {
             $table->id();
             $table->string('numero_pedido')->unique(); // Formato: PED-2024-001
-            $table->unsignedBigInteger('id_usuario');   
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');   
             // Status
             $table->enum('status', [
                 'PENDENTE',          // Criado, aguardando pagamento
@@ -53,11 +53,11 @@ return new class extends Migration
             $table->string('nota_fiscal_url', 500)->nullable();     
             $table->timestamps();
 
-            $table->index('id_usuario', 'idx_pedido_usuario');
-            $table->index('status', 'idx_pedido_status');
-            $table->index('numero_pedido', 'idx_pedido_numero');
-            $table->index('data_pedido', 'idx_pedido_data');
-            $table->index('metodo_pagamento', 'idx_pedido_metodo_pagamento');
+            $table->index('user_id');
+            $table->index('status');
+            $table->index('numero_pedido');
+            $table->index('data_pedido');
+            $table->index('metodo_pagamento');
         });
 
     }
