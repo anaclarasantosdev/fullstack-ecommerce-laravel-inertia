@@ -1,8 +1,9 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
+import Header from '@/Components/Header';
 import { PageProps } from '../../../vendor/laravel/breeze/stubs/inertia-vue-ts/resources/js/types/index';
 
 
-export default function Welcome({auth}:PageProps){
+export default function Welcome({ auth }:PageProps){
     
     return (
         <>
@@ -10,22 +11,7 @@ export default function Welcome({auth}:PageProps){
             <div >
                 <div >
                     <div>
-                        <header className='flex justify-around items-center' >
-                            <h1>Header</h1>
-                            {auth.user ? (
-                                <>  
-                                    <Link href={route("users.index")}>Usuarios</Link>
-                                    <Link href={"dashboard"}>dashboard</Link>
-                                </>
-                              
-                            ): (
-                                <> 
-                                    <Link href={route("register")}>register</Link>
-                                    <Link href={route("login")}>login</Link>
-                                </>
-                               
-                            )}
-                        </header>
+                        <Header auth={auth} />
                         <main>
                             <h1>main vazia</h1>
                         </main>

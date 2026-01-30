@@ -90,7 +90,9 @@ export default function Login({
                     </label>
                 </div>
 
-                <div className="mt-4 flex items-center justify-end">
+                <div className="mt-4 flex flex-col items-center justify-end">
+
+                    <div className='flex w-full flex-col justify-end'>
                     {canResetPassword && (
                         <Link
                             href={route('password.request')}
@@ -99,12 +101,16 @@ export default function Login({
                             Forgot your password?
                         </Link>
                     )}
-
                     <p className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">if you haven't an account <Link className='text-blue-500' href={route('register')}>Register</Link></p>
+                    </div>
 
                     <PrimaryButton className="ms-4" disabled={processing}>
                         Log in
                     </PrimaryButton>
+
+                    <br />
+
+                    <a href="/auth/google" className='flex items-center justify-end gap-2 bg-white border border-gray-300 p-2 rounded-lg hover:bg-gray-50 text-gray-700'><img src="https://www.svgrepo.com/show/355037/google.svg" className='w-5 h-5' alt="Google" />Entrar com Google</a>
                 </div>
             </form>
         </GuestLayout>
